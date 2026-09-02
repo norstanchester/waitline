@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function Dashboard() {
   const { businessId } = useParams();
+  const searchParams = useSearchParams();
+  const adminToken = searchParams.get("admin");
+
   const [business, setBusiness] = useState(null);
   const [entries, setEntries] = useState([]);
 
@@ -76,6 +79,18 @@ export default function Dashboard() {
     return (
       <main>
         <p>Loading business...</p>
+      </main>
+    );
+  }
+
+  if (business.admin_token !== adminToken) {
+    return (
+      <main>
+        <h1>Not authorized</h1>
+        <p>
+          This dashboard link requires the admin key provided when the queue
+          was created.
+        </p>
       </main>
     );
   }
