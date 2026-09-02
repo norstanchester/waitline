@@ -9,6 +9,17 @@ export default function Dashboard() {
   const [business, setBusiness] = useState(null);
   const [entries, setEntries] = useState([]);
 
+  async function loadEntries() {
+    const { data } = await supabase
+      .from("queue_entries")
+      .select("*")
+      .eq("business_id", businessId)
+      .in("status", ["waiting", "called"])
+      .order("created_at", { ascending: true });
+
+    setEntries(data ?? []);
+  }
+
   useEffect(() => {
     async function loadBusiness() {
       const { data } = await supabase
@@ -20,19 +31,26 @@ export default function Dashboard() {
       setBusiness(data);
     }
 
-    async function loadEntries() {
-      const { data } = await supabase
-        .from("queue_entries")
-        .select("*")
-        .eq("business_id", businessId)
-        .in("status", ["waiting", "called"])
-        .order("created_at", { ascending: true });
-
-      setEntries(data ?? []);
-    }
-
     loadBusiness();
     loadEntries();
+
+    const channel = supabase
+      .channel(`dashboard-${businessId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "queue_entries",
+          filter: `business_id=eq.${businessId}`,
+        },
+        () => loadEntries()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [businessId]);
 
   async function updateStatus(id, status) {
@@ -41,18 +59,13 @@ export default function Dashboard() {
       .update({ status })
       .eq("id", id);
 
-    const { data } = await supabase
-      .from("queue_entries")
-      .select("*")
-      .eq("business_id", businessId)
-      .in("status", ["waiting", "called"])
-      .order("created_at", { ascending: true });
-
-    setEntries(data ?? []);
+    await loadEntries();
   }
 
   async function callNext() {
-    const nextWaiting = entries.find((entry) => entry.status === "waiting");
+    const nextWaiting = entries.find(
+      (entry) => entry.status === "waiting"
+    );
 
     if (nextWaiting) {
       await updateStatus(nextWaiting.id, "called");
@@ -78,7 +91,9 @@ export default function Dashboard() {
   return (
     <main>
       <h1>{business.name}</h1>
-      <p>Average service time: {business.avg_service_minutes} minutes</p>
+      <p>
+        Average service time: {business.avg_service_minutes} minutes
+      </p>
 
       <h2>Queue</h2>
 
