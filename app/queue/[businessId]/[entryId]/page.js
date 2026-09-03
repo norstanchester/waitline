@@ -20,6 +20,7 @@ export default function QueueStatus() {
     setEntry(myEntry);
 
     if (!myEntry || myEntry.status !== "waiting") {
+      setPosition(null);
       return;
     }
 
@@ -46,6 +47,24 @@ export default function QueueStatus() {
 
     loadBusiness();
     computePosition();
+
+    const channel = supabase
+      .channel(`queue-${businessId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "queue_entries",
+          filter: `business_id=eq.${businessId}`,
+        },
+        () => computePosition()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [businessId, computePosition]);
 
   if (!business || !entry) {
