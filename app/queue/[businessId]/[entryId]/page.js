@@ -75,6 +75,11 @@ export default function QueueStatus() {
     );
   }
 
+  const estimatedMinutes =
+    position !== null
+      ? (position - 1) * business.avg_service_minutes
+      : null;
+
   return (
     <main>
       <h1>{business.name}</h1>
@@ -83,7 +88,15 @@ export default function QueueStatus() {
       <p>Status: {entry.status}</p>
 
       {entry.status === "waiting" && (
-        <p>Your position: {position ?? "Calculating..."}</p>
+        <>
+          <p>Your position: {position ?? "Calculating..."}</p>
+          <p>
+            Estimated wait:{" "}
+            {estimatedMinutes !== null
+              ? `~${estimatedMinutes} minutes`
+              : "Calculating..."}
+          </p>
+        </>
       )}
     </main>
   );
