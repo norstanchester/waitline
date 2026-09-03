@@ -11,6 +11,7 @@ export default function Dashboard() {
 
   const [business, setBusiness] = useState(null);
   const [entries, setEntries] = useState([]);
+  const [joinUrl, setJoinUrl] = useState("");
 
   async function loadEntries() {
     const { data } = await supabase
@@ -19,21 +20,22 @@ export default function Dashboard() {
       .eq("business_id", businessId)
       .in("status", ["waiting", "called"])
       .order("created_at", { ascending: true });
-
     setEntries(data ?? []);
   }
 
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      setJoinUrl(`${window.location.origin}/queue/${businessId}`);
+    }
+
     async function loadBusiness() {
       const { data } = await supabase
         .from("businesses")
         .select("*")
         .eq("id", businessId)
         .single();
-
       setBusiness(data);
     }
-
     loadBusiness();
     loadEntries();
 
@@ -41,115 +43,97 @@ export default function Dashboard() {
       .channel(`dashboard-${businessId}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "queue_entries",
-          filter: `business_id=eq.${businessId}`,
-        },
+        { event: "*", schema: "public", table: "queue_entries", filter: `business_id=eq.${businessId}` },
         () => loadEntries()
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [businessId]);
 
   async function updateStatus(id, status) {
-    await supabase
-      .from("queue_entries")
-      .update({ status })
-      .eq("id", id);
-
-    await loadEntries();
+    await supabase.from("queue_entries").update({ status }).eq("id", id);
   }
 
   async function callNext() {
-    const nextWaiting = entries.find(
-      (entry) => entry.status === "waiting"
-    );
-
-    if (nextWaiting) {
-      await updateStatus(nextWaiting.id, "called");
-    }
+    const nextWaiting = entries.find((e) => e.status === "waiting");
+    if (nextWaiting) updateStatus(nextWaiting.id, "called");
   }
 
   if (!business) {
     return (
-      <main>
-        <p>Loading business...</p>
+      <main className="wrap">
+        <p className="sub">Loading dashboard...</p>
       </main>
     );
   }
 
   if (business.admin_token !== adminToken) {
     return (
-      <main>
+      <main className="wrap">
         <h1>Not authorized</h1>
-        <p>
-          This dashboard link requires the admin key provided when the queue
-          was created.
+        <p className="sub">
+          This dashboard link needs the admin key you got when you created the
+          queue. Check the URL you saved.
         </p>
       </main>
     );
   }
 
-  const waitingEntries = entries.filter(
-    (entry) => entry.status === "waiting"
-  );
-
-  const calledEntries = entries.filter(
-    (entry) => entry.status === "called"
-  );
+  const waitingEntries = entries.filter((e) => e.status === "waiting");
+  const calledEntries = entries.filter((e) => e.status === "called");
 
   return (
-    <main>
+    <main className="wrap">
       <h1>{business.name}</h1>
-      <p>
-        Average service time: {business.avg_service_minutes} minutes
-      </p>
+      <p className="sub">{waitingEntries.length} waiting · {calledEntries.length} called</p>
 
-      <h2>Queue</h2>
+      <div className="link-box">Share this link so customers can join: {joinUrl}</div>
 
-      <button
-        onClick={callNext}
-        disabled={waitingEntries.length === 0}
-      >
+      <button onClick={callNext} disabled={waitingEntries.length === 0}>
         Call next customer
       </button>
 
-      <h3>Called</h3>
+      <hr className="divider" />
 
-      {calledEntries.map((entry) => (
-        <div key={entry.id}>
-          <strong>{entry.name}</strong>
-          <p>Party of {entry.party_size} · called</p>
-          <button
-            onClick={() => updateStatus(entry.id, "served")}
-          >
-            Mark served
-          </button>
+      {calledEntries.map((e) => (
+        <div className="card" key={e.id}>
+          <div className="row">
+            <div>
+              <strong>{e.name}</strong>
+              <div className="sub" style={{ margin: 0 }}>Party of {e.party_size} · called</div>
+            </div>
+            <button
+              className="secondary"
+              style={{ width: "auto", padding: "8px 12px" }}
+              onClick={() => updateStatus(e.id, "served")}
+            >
+              Mark served
+            </button>
+          </div>
         </div>
       ))}
 
-      <h3>Waiting</h3>
-
-      {waitingEntries.map((entry, index) => (
-        <div key={entry.id}>
-          <strong>
-            #{index + 1} {entry.name}
-          </strong>
-          <p>Party of {entry.party_size}</p>
-          <button
-            onClick={() => updateStatus(entry.id, "cancelled")}
-          >
-            Remove
-          </button>
+      {waitingEntries.map((e, i) => (
+        <div className="card" key={e.id}>
+          <div className="row">
+            <div>
+              <strong>#{i + 1} {e.name}</strong>
+              <div className="sub" style={{ margin: 0 }}>Party of {e.party_size}</div>
+            </div>
+            <button
+              className="secondary"
+              style={{ width: "auto", padding: "8px 12px" }}
+              onClick={() => updateStatus(e.id, "cancelled")}
+            >
+              Remove
+            </button>
+          </div>
         </div>
       ))}
 
-      {entries.length === 0 && <p>No one in line yet.</p>}
+      {entries.length === 0 && <p className="sub">No one in line yet.</p>}
     </main>
   );
 }
