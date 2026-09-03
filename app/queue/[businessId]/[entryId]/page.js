@@ -11,18 +11,15 @@ export default function QueueStatus() {
   const [position, setPosition] = useState(null);
 
   const computePosition = useCallback(async () => {
+    // Position = how many *earlier* waiting entries exist for this business, + 1.
     const { data: myEntry } = await supabase
       .from("queue_entries")
       .select("*")
       .eq("id", entryId)
       .single();
-
     setEntry(myEntry);
 
-    if (!myEntry || myEntry.status !== "waiting") {
-      setPosition(null);
-      return;
-    }
+    if (!myEntry || myEntry.status !== "waiting") return;
 
     const { count } = await supabase
       .from("queue_entries")
@@ -41,23 +38,18 @@ export default function QueueStatus() {
         .select("name, avg_service_minutes")
         .eq("id", businessId)
         .single();
-
       setBusiness(data);
     }
-
     loadBusiness();
     computePosition();
 
+    // Re-check position any time any entry for this business changes
+    // (someone joins, gets served, or cancels).
     const channel = supabase
       .channel(`queue-${businessId}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "queue_entries",
-          filter: `business_id=eq.${businessId}`,
-        },
+        { event: "*", schema: "public", table: "queue_entries", filter: `business_id=eq.${businessId}` },
         () => computePosition()
       )
       .subscribe();
@@ -67,37 +59,60 @@ export default function QueueStatus() {
     };
   }, [businessId, computePosition]);
 
-  if (!business || !entry) {
+  if (!entry || !business) {
     return (
-      <main>
-        <p>Loading your queue status...</p>
+      <main className="wrap">
+        <p className="sub">Loading your spot...</p>
       </main>
     );
   }
 
-  const estimatedMinutes =
-    position !== null
-      ? (position - 1) * business.avg_service_minutes
-      : null;
+  if (entry.status === "served") {
+    return (
+      <main className="wrap">
+        <h1>You've been served</h1>
+        <p className="sub">Thanks for using {business.name}'s queue.</p>
+      </main>
+    );
+  }
+
+  if (entry.status === "cancelled") {
+    return (
+      <main className="wrap">
+        <h1>Removed from queue</h1>
+        <p className="sub">This spot was cancelled. Ask staff if this is a mistake.</p>
+      </main>
+    );
+  }
+
+  if (entry.status === "called") {
+    return (
+      <main className="wrap">
+        <span className="badge">It's your turn</span>
+        <h1>Head in now, {entry.name}</h1>
+        <p className="sub">{business.name} is ready for you.</p>
+      </main>
+    );
+  }
+
+  const estimatedMinutes = position ? (position - 1) * business.avg_service_minutes : null;
 
   return (
-    <main>
-      <h1>{business.name}</h1>
-      <p>You're currently in the queue.</p>
-      <p>Name: {entry.name}</p>
-      <p>Status: {entry.status}</p>
+    <main className="wrap">
+      <span className="badge">In line at {business.name}</span>
+      <h1>Hang tight, {entry.name}</h1>
+      <p className="sub">You'll see this page update automatically — no need to refresh.</p>
 
-      {entry.status === "waiting" && (
-        <>
-          <p>Your position: {position ?? "Calculating..."}</p>
-          <p>
-            Estimated wait:{" "}
-            {estimatedMinutes !== null
-              ? `~${estimatedMinutes} minutes`
-              : "Calculating..."}
-          </p>
-        </>
-      )}
+      <div className="card">
+        <div className="row">
+          <span className="sub" style={{ margin: 0 }}>Your position</span>
+        </div>
+        <div className="position-number">{position ?? "…"}</div>
+        <div className="row">
+          <span className="sub" style={{ margin: 0 }}>Estimated wait</span>
+          <strong>{estimatedMinutes !== null ? `~${estimatedMinutes} min` : "calculating..."}</strong>
+        </div>
+      </div>
     </main>
   );
 }
