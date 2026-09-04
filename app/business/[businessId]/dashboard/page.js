@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function Dashboard() {
   const { businessId } = useParams();
@@ -90,6 +91,15 @@ export default function Dashboard() {
       <p className="sub">{waitingEntries.length} waiting · {calledEntries.length} called</p>
 
       <div className="link-box">Share this link so customers can join: {joinUrl}</div>
+
+      <div className="qr-section" id="printable-qr">
+        {joinUrl && <QRCodeSVG value={joinUrl} size={180} includeMargin />}
+        <p className="qr-caption">Scan to join the {business.name} queue</p>
+      </div>
+
+      <button className="secondary" onClick={() => window.print()} style={{ marginBottom: 12 }}>
+        Print QR code
+      </button>
 
       <button onClick={callNext} disabled={waitingEntries.length === 0}>
         Call next customer
