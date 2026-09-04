@@ -4,6 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
+function generateShortCode(length = 6) {
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+  let code = "";
+  for (let i = 0; i < length; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
 export default function Home() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -19,17 +28,29 @@ export default function Home() {
       return;
     }
     setLoading(true);
-    const { data, error } = await supabase
-      .from("businesses")
-      .insert({ name: name.trim(), avg_service_minutes: Number(avgMinutes) || 10 })
-      .select()
-      .single();
+
+    let data, insertError;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const shortCode = generateShortCode();
+      const result = await supabase
+        .from("businesses")
+        .insert({
+          name: name.trim(),
+          avg_service_minutes: Number(avgMinutes) || 10,
+          short_code: shortCode,
+        })
+        .select()
+        .single();
+      data = result.data;
+      insertError = result.error;
+      if (!insertError) break; // success, stop retrying
+    }
+
     setLoading(false);
-    if (error) {
+    if (insertError) {
       setError("Something went wrong creating your queue. Check your Supabase setup.");
       return;
     }
-    // Send the owner straight to their private dashboard, admin_token included.
     router.push(`/business/${data.id}/dashboard?admin=${data.admin_token}`);
   }
 
@@ -68,8 +89,7 @@ export default function Home() {
 
       <hr className="divider" />
       <p className="sub" style={{ marginBottom: 0 }}>
-        Already have a queue link from a business? Ask them for your join link
-        — it looks like <code>/queue/[businessId]</code>.
+        Already have a queue link from a business? Ask them for your join link.
       </p>
     </main>
   );
