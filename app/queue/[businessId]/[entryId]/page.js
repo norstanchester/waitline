@@ -70,6 +70,7 @@ export default function QueueStatus() {
   if (entry.status === "served") {
     return (
       <main className="wrap">
+        <img src="/logo.png" alt="WaitLine" className="logo" />
         <h1>You've been served</h1>
         <p className="sub">Thanks for using {business.name}'s queue.</p>
       </main>
@@ -79,6 +80,7 @@ export default function QueueStatus() {
   if (entry.status === "cancelled") {
     return (
       <main className="wrap">
+        <img src="/logo.png" alt="WaitLine" className="logo" />
         <h1>Removed from queue</h1>
         <p className="sub">This spot was cancelled. Ask staff if this is a mistake.</p>
       </main>
@@ -88,6 +90,7 @@ export default function QueueStatus() {
   if (entry.status === "called") {
     return (
       <main className="wrap">
+        <img src="/logo.png" alt="WaitLine" className="logo" />
         <span className="badge">It's your turn</span>
         <h1>Head in now, {entry.name}</h1>
         <p className="sub">{business.name} is ready for you.</p>

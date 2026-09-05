@@ -72,6 +72,7 @@ useEffect(() => {
   if (business.admin_token !== adminToken) {
     return (
       <main className="wrap">
+        <img src="/logo.png" alt="WaitLine" className="logo" />
         <h1>Not authorized</h1>
         <p className="sub">
           This dashboard link needs the admin key you got when you created the
@@ -86,6 +87,7 @@ useEffect(() => {
 
   return (
     <main className="wrap">
+      <img src="/logo.png" alt="WaitLine" className="logo" />
       <h1>{business.name}</h1>
       <p className="sub">{waitingEntries.length} waiting · {calledEntries.length} called</p>
 

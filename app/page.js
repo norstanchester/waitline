@@ -56,6 +56,7 @@ export default function Home() {
 
   return (
     <main className="wrap">
+      <img src="/logo.png" alt="WaitLine" className="logo" />
       <h1>WaitLine</h1>
       <p className="sub">
         Let customers join your line from their phone. No app to download, no

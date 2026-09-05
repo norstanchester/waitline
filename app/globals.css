@@ -1,9 +1,10 @@
 :root {
-  --ink: #17171a;
-  --paper: #faf9f7;
-  --line: #e4e2dd;
-  --accent: #2f6f4f;
-  --muted: #6b6a66;
+  --ink: #232c5e;
+  --paper: #f6f7fe;
+  --line: #d8dbf5;
+  --accent: #4451b4;
+  --accent-dark: #293489;
+  --muted: #6b6f95;
 }
 
 * {
@@ -45,6 +46,13 @@ label {
   margin-bottom: 6px;
 }
 
+.logo {
+  display: block;
+  width: 72px;
+  height: auto;
+  margin: 0 auto 16px;
+}
+
 input {
   width: 100%;
   padding: 12px 14px;
@@ -71,6 +79,10 @@ button {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: var(--accent-dark);
 }
 
 button:disabled {
@@ -125,8 +137,8 @@ button.secondary {
   font-size: 12px;
   padding: 3px 8px;
   border-radius: 100px;
-  background: #eef3ee;
-  color: var(--accent);
+  background: #e4e6fb;
+  color: var(--accent-dark);
 }
 
 .qr-section { 
