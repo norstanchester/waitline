@@ -24,11 +24,7 @@ export default function Dashboard() {
     setEntries(data ?? []);
   }
 
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setJoinUrl(`${window.location.origin}/queue/${businessId}`);
-    }
-
+useEffect(() => {
     async function loadBusiness() {
       const { data } = await supabase
         .from("businesses")
@@ -36,6 +32,9 @@ export default function Dashboard() {
         .eq("id", businessId)
         .single();
       setBusiness(data);
+      if (typeof window !== "undefined" && data) {
+        setJoinUrl(`${window.location.origin}/q/${data.short_code}`);
+      }
     }
     loadBusiness();
     loadEntries();
