@@ -11,6 +11,7 @@ export default function JoinQueue() {
   const [business, setBusiness] = useState(null);
   const [name, setName] = useState("");
   const [partySize, setPartySize] = useState(1);
+  const [travelMinutes, setTravelMinutes] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -47,6 +48,7 @@ export default function JoinQueue() {
         business_id: businessId,
         name: name.trim(),
         party_size: Number(partySize) || 1,
+        travel_minutes: travelMinutes ? Number(travelMinutes) : null,
       })
       .select()
       .single();
@@ -95,6 +97,16 @@ export default function JoinQueue() {
           onChange={(e) => setPartySize(e.target.value)}
         />
 
+        <label htmlFor="travel">How far away are you? (minutes, optional)</label>
+        <input
+          id="travel"
+          type="number"
+          min="0"
+          value={travelMinutes}
+          onChange={(e) => setTravelMinutes(e.target.value)}
+          placeholder="e.g. 15"
+        />
+        
         <button type="submit" disabled={loading}>
           {loading ? "Joining..." : "Join the queue"}
         </button>

@@ -99,12 +99,23 @@ export default function QueueStatus() {
   }
 
   const estimatedMinutes = position ? (position - 1) * business.avg_service_minutes : null;
+  const shouldLeaveNow =
+    entry.travel_minutes != null &&
+    estimatedMinutes != null &&
+    estimatedMinutes <= entry.travel_minutes;
 
   return (
     <main className="wrap">
+      <img src="/logo.png" alt="WaitLine" className="logo" />
       <span className="badge">In line at {business.name}</span>
       <h1>Hang tight, {entry.name}</h1>
       <p className="sub">You'll see this page update automatically — no need to refresh.</p>
+
+      {shouldLeaveNow && (
+        <div className="leave-now-banner">
+          🚗 Leave now! You'll arrive right around when it's your turn.
+        </div>
+      )}
 
       <div className="card">
         <div className="row">
