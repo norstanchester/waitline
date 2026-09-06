@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -9,9 +9,25 @@ export default function QueueStatus() {
   const [business, setBusiness] = useState(null);
   const [entry, setEntry] = useState(null);
   const [position, setPosition] = useState(null);
+  const prevStatusRef = useRef(null);
+
+  function playBeep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
+      oscillator.frequency.value = 880;
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      oscillator.start();
+      oscillator.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+      // ignore if audio isn't supported/allowed
+    }
+  }
 
   const computePosition = useCallback(async () => {
-    // Position = how many *earlier* waiting entries exist for this business, + 1.
     const { data: myEntry } = await supabase
       .from("queue_entries")
       .select("*")
@@ -43,8 +59,10 @@ export default function QueueStatus() {
     loadBusiness();
     computePosition();
 
-    // Re-check position any time any entry for this business changes
-    // (someone joins, gets served, or cancels).
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
     const channel = supabase
       .channel(`queue-${businessId}`)
       .on(
@@ -58,6 +76,20 @@ export default function QueueStatus() {
       supabase.removeChannel(channel);
     };
   }, [businessId, computePosition]);
+
+  useEffect(() => {
+    if (!entry) return;
+    if (entry.status === "called" && prevStatusRef.current !== "called") {
+      playBeep();
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        new Notification("It's your turn!", {
+          body: business ? `${business.name} is ready for you.` : "You're up next.",
+          icon: "/logo.png",
+        });
+      }
+    }
+    prevStatusRef.current = entry.status;
+  }, [entry, business]);
 
   if (!entry || !business) {
     return (
