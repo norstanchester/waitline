@@ -91,6 +91,12 @@ export default function QueueStatus() {
     prevStatusRef.current = entry.status;
   }, [entry, business]);
 
+  async function leaveQueue() {
+    const confirmed = window.confirm("Leave the queue? You'll lose your spot.");
+    if (!confirmed) return;
+    await supabase.from("queue_entries").update({ status: "cancelled" }).eq("id", entryId);
+  }
+
   if (!entry || !business) {
     return (
       <main className="wrap">
@@ -159,6 +165,10 @@ export default function QueueStatus() {
           <strong>{estimatedMinutes !== null ? `~${estimatedMinutes} min` : "calculating..."}</strong>
         </div>
       </div>
+      
+      <button className="secondary" onClick={leaveQueue}>
+        Leave queue
+      </button>
     </main>
   );
 }
