@@ -9,6 +9,7 @@ export default function QueueStatus() {
   const [business, setBusiness] = useState(null);
   const [entry, setEntry] = useState(null);
   const [position, setPosition] = useState(null);
+  const [aheadEntries, setAheadEntries] = useState([]);
   const prevStatusRef = useRef(null);
 
   function playBeep() {
@@ -37,14 +38,15 @@ export default function QueueStatus() {
 
     if (!myEntry || myEntry.status !== "waiting") return;
 
-    const { count } = await supabase
+    const { data: ahead } = await supabase
       .from("queue_entries")
-      .select("id", { count: "exact", head: true })
+      .select("party_size")
       .eq("business_id", businessId)
       .eq("status", "waiting")
       .lt("created_at", myEntry.created_at);
 
-    setPosition((count ?? 0) + 1);
+    setAheadEntries(ahead ?? []);
+    setPosition((ahead?.length ?? 0) + 1);
   }, [businessId, entryId]);
 
   useEffect(() => {
@@ -136,7 +138,13 @@ export default function QueueStatus() {
     );
   }
 
-  const estimatedMinutes = position ? (position - 1) * business.avg_service_minutes : null;
+  const EXTRA_MINUTES_PER_PERSON = 2;
+  const estimatedMinutes = business
+    ? aheadEntries.reduce(
+        (total, e) => total + business.avg_service_minutes + EXTRA_MINUTES_PER_PERSON * Math.max((e.party_size || 1) - 1, 0),
+        0
+      )
+    : null;
   const shouldLeaveNow =
     entry.travel_minutes != null &&
     estimatedMinutes != null &&
