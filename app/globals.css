@@ -80,6 +80,33 @@ input:focus {
   outline-offset: 1px;
 }
 
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(85px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stat-box {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 8px;
+  background: #fff;
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
 button {
   width: 100%;
   padding: 13px 14px;
